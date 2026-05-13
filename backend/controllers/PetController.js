@@ -117,8 +117,42 @@ module.exports = class PetController {
  
 
   static async updatePet(req, res) {
+    const id = req.params.id;
+    const { name, age, weight, color, available } = req.body;
+    const images = req.files;
+    const token = getToken(req);
+    const user = await getUserByToken(token);
+    const pet = await Pet.findOne({ _id: id });
 
+    if (!pet) {
+      res.status(404).json({ message: 'Pet não encontrado!' });
+      return;
+    }
 
+    if (pet.user._id.toString() !== user._id.toString()) {
+      res.status(422).json({
+        message: 'Houve um problema ao acessar a sua solicitação!',
+      });
+      return;
+    }
+
+    const petTemp = {
+      name,
+      age,
+      weight,
+      color,
+      available,
+    };
+
+    if (images.length > 0) {
+      petTemp.images = [];
+      images.map((image) => {
+        petTemp.images.push(image.filename);
+      });
+    }
+
+    await Pet.findByIdAndUpdate(id, petTemp);
+    res.status(200).json({ message: 'Pet atualizado com sucesso!' });
   }
 
   static async schedule(req, res) {
