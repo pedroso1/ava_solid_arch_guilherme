@@ -5,66 +5,54 @@ const getUserByToken = require('../helpers/get-user-by-token');
 
 module.exports = class PetController {
   static async createPet(req, res) {
-    const { name, age, weight, color } = req.body
+        const { name, age, weight, color } = req.body;
+    const images = req.files;
+    const available = true;
 
-    if (!name) {
-      res.status(422).json({ message: 'O nome do pet é obrigatório' })
-      return
+    if (!name || !age || !weight || !color) {
+      res.status(422).json({ message: 'Todos os campos são obrigatórios!' });
+      return;
     }
 
-    if (!age) {
-      res.status(422).json({ message: 'A idade do pet é obrigatória' })
-      return
-    }
-
-    if (!weight) {
-      res.status(422).json({ message: 'O peso do pet é obrigatório' })
-      return
-    }
-
-    if (!color) {
-      res.status(422).json({ message: 'A cor do pet é obrigatória' })
-      return
-    }
-
-    if (!req.files || req.files.length === 0) {
-      res.status(422).json({ message: 'A imagem do pet é obrigatória' })
-      return
-    }
-
-    const images = req.files.map((file) => file.filename)
-
-    const token = getToken(req)
-    const user = await getUserByToken(token)
-
-    if (!user) {
-      res.status(404).json({ message: 'Usuário não encontrado' })
-      return
-    }
-
-    user.password = undefined
+    const token = getToken(req);
+    const user = await getUserByToken(token);
 
     const pet = new Pet({
       name,
       age,
       weight,
       color,
-      image: images,
-      available: true,
-      user,
-    })
+      available,
+      images: [],
+      user: {
+        _id: user._id,
+        name: user.name,
+        image: user.image,
+        phone: user.phone,
+      },
+    });
+
+    images.map((image) => {
+      pet.images.push(image.filename);
+    });
 
     try {
-      const newPet = await pet.save()
-      res.status(201).json({ message: 'Pet cadastrado com sucesso', data: newPet })
+      const newPet = await pet.save();
+      res.status(201).json({
+        message: 'Pet cadastrado com sucesso!',
+        newPet,
+      });
     } catch (error) {
-      res.status(500).json({ message: error.message })
-    }
-  }
+      res.status(500).json({ message: error });
+    
+      }}
 
   static async getAll(req, res) {
- 
-  }
+        const pets = await Pet.find().sort('-createdAt');
+    res.status(200).json({
+      pets: pets,
+    });
+ }
 
   static async getAllUserPets(req, res) {
  
